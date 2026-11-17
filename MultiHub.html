@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MultiHub - Sınıf Oyun Portalı</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0f1016;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Header & Navbar */
+    header {
+      background: #181924;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #2a2c3d;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #fff;
+    }
+
+    .logo span {
+      color: #7289da;
+    }
+
+    .search-bar input {
+      background: #252836;
+      border: 1px solid #3b3e54;
+      padding: 8px 16px;
+      border-radius: 20px;
+      color: #fff;
+      outline: none;
+      width: 250px;
+      transition: 0.3s;
+    }
+
+    .search-bar input:focus {
+      border-color: #7289da;
+      width: 300px;
+    }
+
+    /* Main Container & Grid */
+    main {
+      padding: 30px;
+      flex: 1;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #a0a5c0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    /* Oyun Kartları */
+    .game-card {
+      background: #181924;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid #2a2c3d;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .game-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(114, 137, 218, 0.3);
+      border-color: #7289da;
+    }
+
+    .game-thumb {
+      width: 100%;
+      height: 140px;
+      background-color: #252836;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .game-info {
+      padding: 12px;
+    }
+
+    .game-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .game-author {
+      font-size: 12px;
+      color: #7289da;
+    }
+
+    .badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #7289da;
+      color: #fff;
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    /* Modal / Fullscreen İframe Player */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      flex-direction: column;
+    }
+
+    .modal-header {
+      background: #181924;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .close-btn:hover {
+      background: #c0392b;
+    }
+
+    .iframe-container {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">MULTI<span>HUB</span></div>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Oyun ara..." onkeyup="filterGames()">
+    </div>
+  </header>
+
+  <main>
+    <h2 class="section-title">Sınıf Projeleri</h2>
+    <div class="game-grid" id="gameGrid"></div>
+  </main>
+
+  <!-- Offline Oyunlar İçin Modal Penceresi -->
+  <div class="modal" id="gameModal">
+    <div class="modal-header">
+      <h3 id="modalGameTitle">Oyun Adı</h3>
+      <button class="close-btn" onclick="closeGame()">X Oyundan Çık</button>
+    </div>
+    <div class="iframe-container">
+      <iframe id="gameFrame" src=""></iframe>
+    </div>
+  </div>
+
+  <script>
+    // 🕹️ SINIFIN YAPTIĞI OYUNLAR LİSTESİ
+    // isExternal: true -> Oyunu yeni sekmede açar (Online/Sunuculu oyunlar için)
+    // isExternal: false -> Oyunu iframe içinde modal olarak açar (Tek kişilik/Offline oyunlar için)
+    const gamesData = [
+      {
+        title: "Cursed Era Online",
+        author: "Caner Uludoğan",
+        icon: "⚔️",
+        path: "http://cursedera.onrender.com", // Veya yayındaki canlı site linkiniz
+        isExternal: true
+      },
+      {
+        title: "Survival Wars",
+        author: "Yiğit Canbaz",
+        icon: "💥",
+        path: "games/Survival Wars/survivalwars.html",
+        isExternal: false
+      },
+      {
+        title: "Pixel Labirent",
+        author: "Mehmet",
+        icon: "🧩",
+        path: "games/labirent/index.html",
+        isExternal: false
+      }
+    ];
+
+    const gameGrid = document.getElementById('gameGrid');
+
+    // Kartları Ekrana Bas
+    function renderGames(list) {
+      gameGrid.innerHTML = '';
+      list.forEach(game => {
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        
+        // Tıklama davranışı: Online ise yeni sekme, offline ise iframe modal
+        card.onclick = () => {
+          if (game.isExternal) {
+            window.open(game.path, '_blank');
+          } else {
+            openGame(game.title, game.path);
+          }
+        };
+
+        const badgeHtml = game.isExternal ? `<div class="badge">ONLINE 🌐</div>` : ``;
+
+        card.innerHTML = `
+          ${badgeHtml}
+          <div class="game-thumb">${game.icon}</div>
+          <div class="game-info">
+            <div class="game-title">${game.title}</div>
+            <div class="game-author">Yapımcı: ${game.author}</div>
+          </div>
+        `;
+        gameGrid.appendChild(card);
+      });
+    }
+
+    // Oyunu İframe Modalında Aç
+    function openGame(title, path) {
+      document.getElementById('modalGameTitle').innerText = title;
+      document.getElementById('gameFrame').src = path;
+      document.getElementById('gameModal').style.display = 'flex';
+    }
+
+    // Oyunu Kapat
+    function closeGame() {
+      document.getElementById('gameFrame').src = '';
+      document.getElementById('gameModal').style.display = 'none';
+    }
+
+    // Arama Filtresi
+    function filterGames() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = gamesData.filter(g => 
+        g.title.toLowerCase().includes(query) || g.author.toLowerCase().includes(query)
+      );
+      renderGames(filtered);
+    }
+
+    // İlk Yükleme
+    renderGames(gamesData);
+  </script>
+
+</body>
+</html>
